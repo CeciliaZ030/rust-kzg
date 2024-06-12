@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use alloc::string::String;
+use serde::{Deserialize, Serialize};
 
 use crate::{Fr, G1Affine, G1Fp, G1GetFp, G1Mul, G1};
 
@@ -12,7 +13,7 @@ pub type PrecomputationTable<TFr, TG1, TG1Fp, TG1Affine> =
     not(feature = "bgmw"),
     all(feature = "arkmsm", not(feature = "parallel"))
 ))]
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct EmptyTable<TFr, TG1, TG1Fp, TG1Affine>
 where
     TFr: Fr,

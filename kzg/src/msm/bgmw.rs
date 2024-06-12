@@ -1,5 +1,7 @@
 use core::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{Fr, G1Affine, G1Fp, G1GetFp, G1Mul, Scalar256, G1};
 
 use super::pippenger_utils::{
@@ -7,7 +9,8 @@ use super::pippenger_utils::{
     pippenger_window_size, type_is_zero, P1XYZZ,
 };
 
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BgmwTable<TFr, TG1, TG1Fp, TG1Affine>
 where
     TFr: Fr,

@@ -11,7 +11,10 @@ use kzg::msm::precompute::PrecomputationTable;
 use kzg::{Fr as FrTrait, G1Mul, G2Mul};
 use std::ops::{Add, Neg};
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DefaultOnNull};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FFTSettings {
     pub max_width: usize,
     pub root_of_unity: BlstFr,
@@ -38,11 +41,13 @@ pub fn expand_root_of_unity(root: &BlstFr, width: usize) -> Result<Vec<BlstFr>, 
     Ok(generated_powers)
 }
 
-#[derive(Debug, Clone, Default)]
+#[serde_as]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct KZGSettings {
     pub fs: FFTSettings,
     pub secret_g1: Vec<ZG1>,
     pub secret_g2: Vec<ZG2>,
+    #[serde_as(as = "Option<DefaultOnNull>")]
     pub precomputation: Option<PrecomputationTable<ZFr, ZG1, ZFp, ZG1Affine>>,
 }
 
