@@ -13,6 +13,10 @@ pub use blst::{blst_fr, blst_p1, blst_p2};
 use core::ffi::c_uint;
 use core::hash::Hash;
 use core::hash::Hasher;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use sha2::{Digest, Sha256};
 use siphasher::sip::SipHasher;
 
@@ -84,6 +88,47 @@ pub struct BLSFieldElement {
 #[repr(C)]
 pub struct Blob {
     pub bytes: [u8; BYTES_PER_BLOB],
+}
+
+impl Serialize for Blob {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(&self.bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for Blob {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct BlobVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for BlobVisitor {
+            type Value = Blob;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("an array of BYTES_PER_BLOB(131072) bytes")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.len() == BYTES_PER_BLOB {
+                    let mut bytes = [0u8; BYTES_PER_BLOB];
+                    bytes.copy_from_slice(v);
+                    Ok(Blob { bytes })
+                } else {
+                    Err(E::invalid_length(v.len(), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_bytes(BlobVisitor)
+    }
 }
 
 #[repr(C)]
