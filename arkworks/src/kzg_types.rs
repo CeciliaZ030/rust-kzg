@@ -32,6 +32,9 @@ use kzg::{
     FFTFr, FFTSettings, FFTSettingsPoly, Fr as KzgFr, G1Affine as G1AffineTrait, G1Fp, G1GetFp,
     G1LinComb, G1Mul, G1ProjAddAffine, G2Mul, KZGSettings, PairingVerify, Poly, Scalar256, G1, G2,
 };
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use std::ops::{AddAssign, Mul, Neg, Sub};
 
 extern crate alloc;
@@ -52,6 +55,45 @@ const BLS12_381_MOD_256: [u64; 4] = [
 pub struct ArkFr {
     pub fr: Fr,
 }
+
+// Custom implementation of Serialize using the Debug trait
+impl Serialize for ArkFr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = self.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+}
+// Custom implementation of Deserialize using the Debug trait
+impl<'de> Deserialize<'de> for ArkFr {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkFrVisitor;
+
+        impl<'de> Visitor<'de> for ArkFrVisitor {
+            type Value = ArkFr;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a string representing ArkFr")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+                where
+                    E: de::Error, 
+            {
+                ArkFr::from_bytes(v)
+                    .map_err(|e |de::Error::custom(e))
+            }
+        }
+
+        deserializer.deserialize_bytes(ArkFrVisitor)
+    }
+}
+
 
 impl ArkFr {
     pub fn from_blst_fr(fr: blst_fr) -> Self {
@@ -251,6 +293,43 @@ impl KzgFr for ArkFr {
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct ArkG1(pub Projective<g1::Config>);
 
+impl Serialize for ArkG1 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer 
+    {
+        let bytes = self.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArkG1 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkG1Visitor;
+
+        impl<'de> Visitor<'de> for ArkG1Visitor {
+            type Value = ArkG1;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a string representing ArkG1")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+                where
+                    E: de::Error, 
+            {
+                ArkG1::from_bytes(v)
+                    .map_err(|e |de::Error::custom(e))
+            }
+        }
+
+        deserializer.deserialize_bytes(ArkG1Visitor)
+    }
+}
+
 impl ArkG1 {
     pub const fn from_blst_p1(p1: blst_p1) -> Self {
         Self(blst_p1_into_pc_g1projective(&p1))
@@ -413,6 +492,44 @@ impl PairingVerify<ArkG1, ArkG2> for ArkG1 {
 #[repr(C)]
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct ArkG2(pub Projective<g2::Config>);
+
+impl Serialize for ArkG2 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer 
+    {
+        let bytes = self.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArkG2 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkG2Visitor;
+
+        impl<'de> Visitor<'de> for ArkG2Visitor {
+            type Value = ArkG2;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a string representing ArkG2")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+                where
+                    E: de::Error, 
+            {
+                ArkG2::from_bytes(v)
+                    .map_err(|e |de::Error::custom(e))
+            }
+        }
+
+        deserializer.deserialize_bytes(ArkG2Visitor)
+    }
+}
+
 
 impl ArkG2 {
     pub const fn from_blst_p2(p2: blst::blst_p2) -> Self {
@@ -633,7 +750,7 @@ impl KZGSettings<ArkFr, ArkG1, ArkG2, LFFTSettings, PolyData, ArkFp, ArkG1Affine
             secret_g1: secret_g1.to_vec(),
             secret_g2: secret_g2.to_vec(),
             fs: fft_settings.clone(),
-            precomputation: precompute(secret_g1).ok().flatten().map(Arc::new),
+            precomputation: Option::None,
         })
     }
 

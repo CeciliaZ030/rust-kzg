@@ -1361,6 +1361,8 @@ dependencies = [
  "libc",
  "rand",
  "rayon",
+ "serde",
+ "serde_with",
 ]
 
 [[package]]

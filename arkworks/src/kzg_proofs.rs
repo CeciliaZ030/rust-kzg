@@ -15,9 +15,13 @@ use kzg::eip_4844::hash_to_bls_field;
 use kzg::msm::precompute::PrecomputationTable;
 use kzg::Fr as FrTrait;
 use kzg::{G1Mul, G2Mul};
+use serde::{Deserialize, Serialize};
+use serde::ser::SerializeStruct;
+use serde_with::serde_as;
+use serde_with::DefaultOnNull;
 use std::ops::Neg;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FFTSettings {
     pub max_width: usize,
     pub root_of_unity: BlstFr,
@@ -44,12 +48,40 @@ pub fn expand_root_of_unity(root: &BlstFr, width: usize) -> Result<Vec<BlstFr>, 
     Ok(generated_powers)
 }
 
-#[derive(Debug, Clone, Default)]
+// #[serde_as]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct KZGSettings {
     pub fs: FFTSettings,
     pub secret_g1: Vec<ArkG1>,
     pub secret_g2: Vec<ArkG2>,
+    // Assume None all the time because we don't need G1 MSM
+    // with proof of equivalence
+    #[serde(serialize_with = "serialize_precomputation", deserialize_with = "deserialize_precomputation")]
     pub precomputation: Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>,
+}
+
+
+fn serialize_precomputation<S>(
+    precomputation: &Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match precomputation {
+        Some(arc) => serializer.serialize_none(),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_precomputation<'de, D>(
+    deserializer: D,
+) -> Result<Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let precomputation = Option::None;
+    Ok(precomputation.map(Arc::new))
 }
 
 pub fn generate_trusted_setup(len: usize, secret: [u8; 32usize]) -> (Vec<ArkG1>, Vec<ArkG2>) {
