@@ -66,6 +66,8 @@ impl Serialize for ArkFr {
         serializer.serialize_bytes(&bytes)
     }
 }
+
+// TODO(Cecilia): fix this
 // Custom implementation of Deserialize using the Debug trait
 impl<'de> Deserialize<'de> for ArkFr {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -78,7 +80,7 @@ impl<'de> Deserialize<'de> for ArkFr {
             type Value = ArkFr;
 
             fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-                formatter.write_str("a string representing ArkFr")
+                formatter.write_str("a bytes representing ArkFr")
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
@@ -90,7 +92,7 @@ impl<'de> Deserialize<'de> for ArkFr {
             }
         }
 
-        deserializer.deserialize_bytes(ArkFrVisitor)
+        deserializer.deserialize_seq(ArkFrVisitor)
     }
 }
 

@@ -142,11 +142,23 @@ pub struct KZGProof {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone)]
 pub struct CKZGSettings {
     pub max_width: u64,
     pub roots_of_unity: *mut blst_fr,
     pub g1_values: *mut blst_p1,
     pub g2_values: *mut blst_p2,
+}
+
+impl Default for CKZGSettings {
+    fn default() -> Self {
+        CKZGSettings {
+            max_width: Default::default(),
+            roots_of_unity: std::ptr::null_mut(),
+            g1_values: std::ptr::null_mut(),
+            g2_values: std::ptr::null_mut(),
+        }
+    }
 }
 
 pub struct PrecomputationTableManager<TFr, TG1, TG1Fp, TG1Affine>
