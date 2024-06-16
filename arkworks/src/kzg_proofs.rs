@@ -15,8 +15,8 @@ use kzg::eip_4844::hash_to_bls_field;
 use kzg::msm::precompute::PrecomputationTable;
 use kzg::Fr as FrTrait;
 use kzg::{G1Mul, G2Mul};
-use serde::{Deserialize, Serialize};
 use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use serde_with::DefaultOnNull;
 use std::ops::Neg;
@@ -56,10 +56,12 @@ pub struct KZGSettings {
     pub secret_g2: Vec<ArkG2>,
     // Assume None all the time because we don't need G1 MSM
     // with proof of equivalence
-    #[serde(serialize_with = "serialize_precomputation", deserialize_with = "deserialize_precomputation")]
+    #[serde(
+        serialize_with = "serialize_precomputation",
+        deserialize_with = "deserialize_precomputation"
+    )]
     pub precomputation: Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>,
 }
-
 
 fn serialize_precomputation<S>(
     precomputation: &Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>,

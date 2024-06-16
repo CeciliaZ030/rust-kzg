@@ -4,9 +4,9 @@ extern crate alloc;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use serde::{Deserialize, Serialize};
 use core::fmt::Debug;
 use msm::precompute::PrecomputationTable;
+use serde::{Deserialize, Serialize};
 
 pub mod common_utils;
 pub mod eip_4844;

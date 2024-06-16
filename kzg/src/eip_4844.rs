@@ -150,6 +150,7 @@ pub struct CKZGSettings {
     pub g2_values: *mut blst_p2,
 }
 
+#[cfg(feature = "std")]
 impl Default for CKZGSettings {
     fn default() -> Self {
         CKZGSettings {
@@ -160,6 +161,9 @@ impl Default for CKZGSettings {
         }
     }
 }
+
+unsafe impl Send for CKZGSettings {}
+unsafe impl Sync for CKZGSettings {}
 
 pub struct PrecomputationTableManager<TFr, TG1, TG1Fp, TG1Affine>
 where

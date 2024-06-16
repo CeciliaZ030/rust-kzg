@@ -493,7 +493,7 @@ impl G2Affine {
 
 /// This is an element of $\mathbb{G}_2$ represented in the projective coordinate space.
 #[cfg_attr(docsrs, doc(cfg(feature = "groups")))]
-#[derive(Copy, Clone, Debug, Serialize,  Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct G2Projective {
     pub x: Fp2,
     pub y: Fp2,
