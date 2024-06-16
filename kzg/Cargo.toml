@@ -14,7 +14,6 @@ serde = {version = "1.0", features = ["derive"]}
 
 [features]
 default = [
-    "rand",
     "std",
 ]
 parallel = [
