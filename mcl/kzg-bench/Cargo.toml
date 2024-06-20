@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 rust-kzg-mcl = { path = '../kzg' }
-blst = "0.3.11"
+blst = { git = "https://github.com/CeciliaZ030/blst.git", branch = "serialize" }
 kzg = { path = "../../kzg" }
 kzg-bench = { path = "../../kzg-bench" }
 

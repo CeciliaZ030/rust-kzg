@@ -82,7 +82,7 @@ fn fft_settings_to_rust(c_settings: *const CKZGSettings) -> Result<FsFFTSettings
     })
 }
 
-fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, String> {
+pub fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, String> {
     let secret_g1 = unsafe {
         core::slice::from_raw_parts(c_settings.g1_values, TRUSTED_SETUP_NUM_G1_POINTS)
             .iter()

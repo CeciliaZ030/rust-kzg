@@ -13,11 +13,13 @@ use kzg::eip_4844::BYTES_PER_G2;
 #[cfg(feature = "rand")]
 use kzg::Fr;
 use kzg::{G2Mul, G2};
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::consts::{G2_GENERATOR, G2_NEGATIVE_GENERATOR};
 use crate::types::fr::FsFr;
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FsG2(pub blst_p2);
 
 impl G2Mul<FsFr> for FsG2 {

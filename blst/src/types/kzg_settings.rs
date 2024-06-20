@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 use kzg::msm::precompute::{precompute, PrecomputationTable};
 use kzg::{FFTFr, FFTSettings, Fr, G1Mul, G2Mul, KZGSettings, Poly, G1, G2};
+use serde::{Deserialize, Serialize};
 
 use crate::consts::{G1_GENERATOR, G2_GENERATOR};
 use crate::kzg_proofs::{g1_linear_combination, pairings_verify};
@@ -18,12 +19,42 @@ use crate::types::poly::FsPoly;
 use super::fp::FsFp;
 use super::g1::FsG1Affine;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FsKZGSettings {
     pub fs: FsFFTSettings,
     pub secret_g1: Vec<FsG1>,
     pub secret_g2: Vec<FsG2>,
+    #[serde(with = "serde_arc_bgmw_table")]
     pub precomputation: Option<Arc<PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>>>,
+}
+
+mod serde_arc_bgmw_table {
+    use super::*;
+    use alloc::sync::Arc;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(
+        value: &Option<Arc<PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(arc) => arc.serialize(serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Option<Arc<PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Option::<PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>>::deserialize(deserializer)
+            .map(|opt| opt.map(Arc::new))
+    }
 }
 
 impl KZGSettings<FsFr, FsG1, FsG2, FsFFTSettings, FsPoly, FsFp, FsG1Affine> for FsKZGSettings {

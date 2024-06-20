@@ -13,8 +13,10 @@ use blst::{
 use kzg::eip_4844::BYTES_PER_FIELD_ELEMENT;
 use kzg::Fr;
 use kzg::Scalar256;
+use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct FsFr(pub blst_fr);
 
 impl Fr for FsFr {
