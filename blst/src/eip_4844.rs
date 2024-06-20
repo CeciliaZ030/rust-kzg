@@ -151,6 +151,22 @@ unsafe fn deserialize_blob(blob: *const Blob) -> Result<Vec<FsFr>, C_KZG_RET> {
         .collect::<Result<Vec<FsFr>, C_KZG_RET>>()
 }
 
+pub fn deserialize_blob_rust(blob: &Blob) -> Result<Vec<FsFr>, String> {
+    blob
+        .bytes
+        .chunks(BYTES_PER_FIELD_ELEMENT)
+        .map(|chunk| {
+            let mut bytes = [0u8; BYTES_PER_FIELD_ELEMENT];
+            bytes.copy_from_slice(chunk);
+            if let Ok(result) = FsFr::from_bytes(&bytes) {
+                Ok(result)
+            } else {
+                Err("Deserialize Fr failed".to_string())
+            }
+        })
+        .collect::<Result<Vec<FsFr>, String>>()
+}
+
 macro_rules! handle_ckzg_badargs {
     ($x: expr) => {
         match $x {
