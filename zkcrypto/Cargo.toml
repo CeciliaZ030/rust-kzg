@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-blst = { git = "https://github.com/CeciliaZ030/blst.git", branch = "serialize" }
+blst = { git = "https://github.com/CeciliaZ030/blst.git", branch = "serialize", features = ["portable", "no-threads"]}
+
 kzg = { path = "../kzg", default-features = false }
 bls12_381 = { path = "../zkcrypto/bls12_381" }
 ff = { version = "0.13", features = ["derive"] }

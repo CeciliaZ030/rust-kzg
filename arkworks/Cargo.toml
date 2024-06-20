@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-blst = { git = "https://github.com/CeciliaZ030/blst.git", branch = "serialize" }
+blst = { git = "https://github.com/CeciliaZ030/blst.git", branch = "serialize", features = ["portable", "no-threads"]}
+
 kzg = { path = "../kzg", default-features = false }
 ark-std = { version = "^0.4.0", default-features = false }
 ark-ff = { version = "^0.4.2", default-features = false, features = [ "asm" ] }
