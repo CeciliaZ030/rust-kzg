@@ -3,6 +3,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::string::ToString;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::ptr::null_mut;
 use kzg::common_utils::reverse_bit_order;
@@ -37,6 +38,7 @@ use crate::types::g1::{FsG1, FsG1Affine};
 
 use crate::types::g2::FsG2;
 use crate::types::kzg_settings::FsKZGSettings;
+use crate::types::kzg_settings::FsPrecomputationTable;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -90,6 +92,7 @@ pub fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, 
             .map(|r| FsG1(*r))
             .collect::<Vec<FsG1>>()
     };
+    let precomputation = unsafe { PRECOMPUTATION_TABLES.get_precomputation(c_settings) };
     Ok(FsKZGSettings {
         fs: fft_settings_to_rust(c_settings)?,
         secret_g1,
@@ -99,7 +102,7 @@ pub fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, 
                 .map(|r| FsG2(*r))
                 .collect::<Vec<FsG2>>()
         },
-        precomputation: unsafe { PRECOMPUTATION_TABLES.get_precomputation(c_settings) },
+        precomputation: precomputation.map(|t| Arc::new(FsPrecomputationTable { table: t.as_ref().clone() })),
     })
 }
 
@@ -213,7 +216,11 @@ pub unsafe extern "C" fn load_trusted_setup(
 
     let c_settings = kzg_settings_to_c(&settings);
 
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
+    let precomputation = settings.precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
 
     *out = c_settings;
     C_KZG_RET_OK
@@ -244,8 +251,11 @@ pub unsafe extern "C" fn load_trusted_setup_file(
 
     let c_settings = kzg_settings_to_c(&settings);
 
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
-
+    let precomputation = settings.precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
     *out = c_settings;
 
     C_KZG_RET_OK

@@ -14,4 +14,4 @@ mod parallel_pippenger_utils;
 mod pippenger_utils;
 
 #[cfg(all(feature = "bgmw", any(not(feature = "arkmsm"), feature = "parallel")))]
-mod bgmw;
+pub mod bgmw;
