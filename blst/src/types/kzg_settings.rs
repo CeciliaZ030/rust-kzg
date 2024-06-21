@@ -1,7 +1,5 @@
 extern crate alloc;
 
-
-
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -68,7 +66,6 @@ mod serde_arc_bgmw_table {
 #[cfg(feature = "bgmw")]
 fn test_serde() {
     
-    use kzg::G1Affine;
     let mut settings = FsKZGSettings::default();
     let table = FsPrecomputationTable::default();
     settings.precomputation = Some(Arc::new(table));

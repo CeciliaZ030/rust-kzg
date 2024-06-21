@@ -60,10 +60,9 @@ pub struct KZGSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct ArkPrecomputationTable{
+struct ArkPrecomputationTable {
     pub table: PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>,
 }
-
 
 mod serde_arc_bgmw_table {
     use super::*;
@@ -77,7 +76,7 @@ mod serde_arc_bgmw_table {
     where
         S: serde::Serializer,
     {
-        // Note(Cecilia): No way to serialize ArkG1Affine 
+        // Note(Cecilia): No way to serialize ArkG1Affine
         match precomputation {
             Some(arc) => arc.as_ref().serialize(serializer),
             None => serializer.serialize_none(),
@@ -93,10 +92,6 @@ mod serde_arc_bgmw_table {
         Option::<ArkPrecomputationTable>::deserialize(deserializer).map(|opt| opt.map(Arc::new))
     }
 }
-
-
-
-
 
 pub fn generate_trusted_setup(len: usize, secret: [u8; 32usize]) -> (Vec<ArkG1>, Vec<ArkG2>) {
     let s = hash_to_bls_field::<ArkFr>(&secret);

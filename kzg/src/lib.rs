@@ -7,7 +7,6 @@ use alloc::vec::Vec;
 use core::fmt::Debug;
 use msm::precompute::PrecomputationTable;
 
-
 pub mod common_utils;
 pub mod eip_4844;
 pub mod msm;

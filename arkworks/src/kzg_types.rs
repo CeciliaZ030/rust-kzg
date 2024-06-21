@@ -1037,8 +1037,9 @@ pub struct ArkG1Affine {
 impl Serialize for ArkG1Affine {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer {
-            serializer.serialize_u128(self.aff.serialized_size(ark_serialize::Compress::Yes) as u128)
+        S: Serializer,
+    {
+        serializer.serialize_u128(self.aff.serialized_size(ark_serialize::Compress::Yes) as u128)
     }
 }
 
@@ -1061,7 +1062,9 @@ impl<'de> Deserialize<'de> for ArkG1Affine {
             where
                 E: de::Error,
             {
-                let aff: G1Affine = G1Affine::deserialize_compressed(value.to_be_bytes().as_slice()).map_err(de::Error::custom)?;
+                let aff: G1Affine =
+                    G1Affine::deserialize_compressed(value.to_be_bytes().as_slice())
+                        .map_err(de::Error::custom)?;
                 Ok(ArkG1Affine { aff })
             }
         }
@@ -1069,7 +1072,6 @@ impl<'de> Deserialize<'de> for ArkG1Affine {
         deserializer.deserialize_str(ArkG1AffineVisitor)
     }
 }
-
 
 impl G1AffineTrait<ArkG1, ArkFp> for ArkG1Affine {
     fn into_affine(g1: &ArkG1) -> Self {

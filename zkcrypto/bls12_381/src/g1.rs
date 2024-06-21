@@ -34,7 +34,7 @@ pub struct G1Affine {
 }
 
 mod serde_choice {
-    use serde::{Deserialize};
+    use serde::Deserialize;
     use subtle::Choice;
 
     pub fn serialize<S>(choice: &Choice, serializer: S) -> Result<S::Ok, S::Error>
@@ -1809,10 +1809,10 @@ fn test_commutative_scalar_subgroup_multiplication() {
     assert_eq!(&g1_p * &a, &a * &g1_p);
 
     // Mixed
-    assert_eq!(&g1_a * a.clone(), a.clone() * &g1_a);
-    assert_eq!(&g1_p * a.clone(), a.clone() * &g1_p);
-    assert_eq!(g1_a.clone() * &a, &a * g1_a.clone());
-    assert_eq!(g1_p.clone() * &a, &a * g1_p.clone());
+    assert_eq!(&g1_a * a, a * &g1_a);
+    assert_eq!(&g1_p * a, a * &g1_p);
+    assert_eq!(g1_a * &a, &a * g1_a);
+    assert_eq!(g1_p * &a, &a * g1_p);
 
     // By value.
     assert_eq!(g1_p * a, a * g1_p);
