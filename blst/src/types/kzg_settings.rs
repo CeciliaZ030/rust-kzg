@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use core::marker::PhantomData;
+
 
 use alloc::string::String;
 use alloc::sync::Arc;
@@ -30,8 +30,7 @@ pub struct FsKZGSettings {
     pub precomputation: Option<Arc<FsPrecomputationTable>>,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 
 pub struct FsPrecomputationTable {
     pub table: PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>,
@@ -61,36 +60,23 @@ mod serde_arc_bgmw_table {
     where
         D: Deserializer<'de>,
     {
-        Option::<FsPrecomputationTable>::deserialize(deserializer)
-            .map(|opt| opt.map(Arc::new))
+        Option::<FsPrecomputationTable>::deserialize(deserializer).map(|opt| opt.map(Arc::new))
     }
 }
-
 
 #[test]
 #[cfg(feature = "bgmw")]
 fn test_serde() {
-    use kzg::{msm::bgmw::BgmwTable, G1Affine};
-    let mut settings = FsKZGSettings::default();
-    let g1_affines = FsG1Affine::into_affine(&FsG1::default());
-    let table = BgmwTable {
-        window: 100,
-        points: vec![g1_affines; 100],
-        numpoints: 22,
-        h: 5,
     
-        g1_marker: PhantomData,
-        g1_fp_marker: PhantomData,
-        fr_marker: PhantomData,
-    };
-
-    settings.precomputation = Some(Arc::new(FsPrecomputationTable { table }));
+    use kzg::{G1Affine};
+    let mut settings = FsKZGSettings::default();
+    let table = FsPrecomputationTable::default();
+    settings.precomputation = Some(Arc::new(table));
     let serialized = serde_json::to_string(&settings).unwrap();
     let deserialized: FsKZGSettings = serde_json::from_str(&serialized).unwrap();
     println!("{:?}\n", deserialized);
     println!("{:?}", serialized);
 }
-
 
 impl KZGSettings<FsFr, FsG1, FsG2, FsFFTSettings, FsPoly, FsFp, FsG1Affine> for FsKZGSettings {
     fn new(

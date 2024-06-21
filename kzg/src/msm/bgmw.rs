@@ -87,7 +87,8 @@ impl<
         TG1Fp: G1Fp,
         TG1: G1 + G1Mul<TFr> + G1GetFp<TG1Fp>,
         TG1Affine: G1Affine<TG1, TG1Fp>,
-    > Default for BgmwTable<TFr, TG1, TG1Fp, TG1Affine> {
+    > Default for BgmwTable<TFr, TG1, TG1Fp, TG1Affine>
+{
     fn default() -> Self {
         let points = vec![TG1::identity(); 16];
         Self::new(&points).unwrap().unwrap()

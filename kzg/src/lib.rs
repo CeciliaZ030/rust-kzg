@@ -6,7 +6,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt::Debug;
 use msm::precompute::PrecomputationTable;
-use serde::{Deserialize, Serialize};
+
 
 pub mod common_utils;
 pub mod eip_4844;

@@ -34,7 +34,7 @@ pub struct G1Affine {
 }
 
 mod serde_choice {
-    use serde::{Deserialize, Serialize};
+    use serde::{Deserialize};
     use subtle::Choice;
 
     pub fn serialize<S>(choice: &Choice, serializer: S) -> Result<S::Ok, S::Error>
@@ -52,7 +52,6 @@ mod serde_choice {
         Ok(Choice::from(value))
     }
 }
-
 
 impl Default for G1Affine {
     fn default() -> G1Affine {

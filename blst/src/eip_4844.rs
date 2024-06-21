@@ -102,7 +102,11 @@ pub fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, 
                 .map(|r| FsG2(*r))
                 .collect::<Vec<FsG2>>()
         },
-        precomputation: precomputation.map(|t| Arc::new(FsPrecomputationTable { table: t.as_ref().clone() })),
+        precomputation: precomputation.map(|t| {
+            Arc::new(FsPrecomputationTable {
+                table: t.as_ref().clone(),
+            })
+        }),
     })
 }
 
@@ -156,8 +160,7 @@ unsafe fn deserialize_blob(blob: *const Blob) -> Result<Vec<FsFr>, C_KZG_RET> {
 }
 
 pub fn deserialize_blob_rust(blob: &Blob) -> Result<Vec<FsFr>, String> {
-    blob
-        .bytes
+    blob.bytes
         .chunks(BYTES_PER_FIELD_ELEMENT)
         .map(|chunk| {
             let mut bytes = [0u8; BYTES_PER_FIELD_ELEMENT];
@@ -216,7 +219,8 @@ pub unsafe extern "C" fn load_trusted_setup(
 
     let c_settings = kzg_settings_to_c(&settings);
 
-    let precomputation = settings.precomputation
+    let precomputation = settings
+        .precomputation
         .as_mut()
         .map(|t| t.as_ref().table.clone())
         .map(Arc::new);
@@ -251,7 +255,8 @@ pub unsafe extern "C" fn load_trusted_setup_file(
 
     let c_settings = kzg_settings_to_c(&settings);
 
-    let precomputation = settings.precomputation
+    let precomputation = settings
+        .precomputation
         .as_mut()
         .map(|t| t.as_ref().table.clone())
         .map(Arc::new);

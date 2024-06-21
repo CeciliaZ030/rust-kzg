@@ -84,18 +84,16 @@ impl<'de> Deserialize<'de> for ArkFr {
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-                where
-                    E: de::Error, 
+            where
+                E: de::Error,
             {
-                ArkFr::from_bytes(v)
-                    .map_err(|e |de::Error::custom(e))
+                ArkFr::from_bytes(v).map_err(|e| de::Error::custom(e))
             }
         }
 
         deserializer.deserialize_seq(ArkFrVisitor)
     }
 }
-
 
 impl ArkFr {
     pub fn from_blst_fr(fr: blst_fr) -> Self {
@@ -298,7 +296,7 @@ pub struct ArkG1(pub Projective<g1::Config>);
 impl Serialize for ArkG1 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer 
+        S: Serializer,
     {
         let bytes = self.to_bytes();
         serializer.serialize_bytes(&bytes)
@@ -320,11 +318,10 @@ impl<'de> Deserialize<'de> for ArkG1 {
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-                where
-                    E: de::Error, 
+            where
+                E: de::Error,
             {
-                ArkG1::from_bytes(v)
-                    .map_err(|e |de::Error::custom(e))
+                ArkG1::from_bytes(v).map_err(|e| de::Error::custom(e))
             }
         }
 
@@ -498,7 +495,7 @@ pub struct ArkG2(pub Projective<g2::Config>);
 impl Serialize for ArkG2 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer 
+        S: Serializer,
     {
         let bytes = self.to_bytes();
         serializer.serialize_bytes(&bytes)
@@ -520,18 +517,16 @@ impl<'de> Deserialize<'de> for ArkG2 {
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-                where
-                    E: de::Error, 
+            where
+                E: de::Error,
             {
-                ArkG2::from_bytes(v)
-                    .map_err(|e |de::Error::custom(e))
+                ArkG2::from_bytes(v).map_err(|e| de::Error::custom(e))
             }
         }
 
         deserializer.deserialize_bytes(ArkG2Visitor)
     }
 }
-
 
 impl ArkG2 {
     pub const fn from_blst_p2(p2: blst::blst_p2) -> Self {

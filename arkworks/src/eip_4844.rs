@@ -141,8 +141,7 @@ unsafe fn deserialize_blob(blob: *const Blob) -> Result<Vec<ArkFr>, C_KZG_RET> {
 }
 
 pub fn deserialize_blob_rust(blob: &Blob) -> Result<Vec<ArkFr>, String> {
-    blob
-        .bytes
+    blob.bytes
         .chunks(BYTES_PER_FIELD_ELEMENT)
         .map(|chunk| {
             let mut bytes = [0u8; BYTES_PER_FIELD_ELEMENT];
@@ -155,7 +154,6 @@ pub fn deserialize_blob_rust(blob: &Blob) -> Result<Vec<ArkFr>, String> {
         })
         .collect::<Result<Vec<ArkFr>, String>>()
 }
-
 
 macro_rules! handle_ckzg_badargs {
     ($x: expr) => {
