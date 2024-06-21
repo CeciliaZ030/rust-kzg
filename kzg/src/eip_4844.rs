@@ -838,7 +838,7 @@ pub fn hash_to_bls_field<TFr: Fr>(x: &[u8; BYTES_PER_FIELD_ELEMENT]) -> TFr {
     TFr::from_bytes_unchecked(x).unwrap()
 }
 
-fn compute_challenge<TFr: Fr, TG1: G1>(blob: &[TFr], commitment: &TG1) -> TFr {
+pub fn compute_challenge<TFr: Fr, TG1: G1>(blob: &[TFr], commitment: &TG1) -> TFr {
     let mut bytes: Vec<u8> = vec![0; CHALLENGE_INPUT_SIZE];
 
     // Copy domain separator
