@@ -131,6 +131,17 @@ impl<'de> Deserialize<'de> for Blob {
     }
 }
 
+impl Blob {
+    pub fn from_slice(data: &[u8]) -> Result<Self, String> {
+        if data.len() != BYTES_PER_BLOB {
+            return Err(String::from("Invalid blob length"));
+        }
+        let mut bytes = [0u8; BYTES_PER_BLOB];
+        bytes.copy_from_slice(data);
+        Ok(Blob { bytes })
+    }
+}
+
 #[repr(C)]
 pub struct KZGCommitment {
     pub bytes: [u8; BYTES_PER_COMMITMENT],
