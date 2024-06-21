@@ -132,7 +132,7 @@ impl<'de> Deserialize<'de> for Blob {
 }
 
 impl Blob {
-    pub fn from_slice(data: &[u8]) -> Result<Self, String> {
+    pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
         if data.len() != BYTES_PER_BLOB {
             return Err(String::from("Invalid blob length"));
         }
