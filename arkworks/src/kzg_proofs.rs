@@ -48,7 +48,6 @@ pub fn expand_root_of_unity(root: &BlstFr, width: usize) -> Result<Vec<BlstFr>, 
     Ok(generated_powers)
 }
 
-// #[serde_as]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct KZGSettings {
     pub fs: FFTSettings,
@@ -56,35 +55,48 @@ pub struct KZGSettings {
     pub secret_g2: Vec<ArkG2>,
     // Assume None all the time because we don't need G1 MSM
     // with proof of equivalence
-    #[serde(
-        serialize_with = "serialize_precomputation",
-        deserialize_with = "deserialize_precomputation"
-    )]
-    pub precomputation: Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>,
+    #[serde(with = "serde_arc_bgmw_table")]
+    pub precomputation: Option<Arc<ArkPrecomputationTable>>,
 }
 
-fn serialize_precomputation<S>(
-    precomputation: &Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match precomputation {
-        Some(arc) => serializer.serialize_none(),
-        None => serializer.serialize_none(),
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ArkPrecomputationTable{
+    pub table: PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>,
+}
+
+
+mod serde_arc_bgmw_table {
+    use super::*;
+    use alloc::sync::Arc;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(
+        precomputation: &Option<Arc<ArkPrecomputationTable>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Note(Cecilia): No way to serialize ArkG1Affine 
+        match precomputation {
+            Some(arc) => arc.as_ref().serialize(serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Option<Arc<ArkPrecomputationTable>>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Option::<ArkPrecomputationTable>::deserialize(deserializer).map(|opt| opt.map(Arc::new))
     }
 }
 
-fn deserialize_precomputation<'de, D>(
-    deserializer: D,
-) -> Result<Option<Arc<PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>>>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let precomputation = Option::None;
-    Ok(precomputation.map(Arc::new))
-}
+
+
+
 
 pub fn generate_trusted_setup(len: usize, secret: [u8; 32usize]) -> (Vec<ArkG1>, Vec<ArkG2>) {
     let s = hash_to_bls_field::<ArkFr>(&secret);

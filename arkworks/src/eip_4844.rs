@@ -14,6 +14,7 @@ use kzg::eip_4844::{
 };
 use kzg::{cfg_into_iter, Fr, G1};
 use std::ptr::null_mut;
+use std::sync::Arc;
 
 #[cfg(feature = "std")]
 use libc::FILE;
@@ -199,8 +200,12 @@ pub unsafe extern "C" fn load_trusted_setup(
     let mut settings = handle_ckzg_badargs!(load_trusted_setup_rust(g1_bytes, g2_bytes));
 
     let c_settings = kzg_settings_to_c(&settings);
-
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
+    let precomputation = settings
+        .precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
 
     *out = c_settings;
 
@@ -231,8 +236,12 @@ pub unsafe extern "C" fn load_trusted_setup_file(
     ));
 
     let c_settings = kzg_settings_to_c(&settings);
-
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
+    let precomputation = settings
+        .precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
 
     *out = c_settings;
 

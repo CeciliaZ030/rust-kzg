@@ -910,7 +910,7 @@ impl KZGSettings<ArkFr, ArkG1, ArkG2, LFFTSettings, PolyData, ArkFp, ArkG1Affine
     }
 
     fn get_precomputation(&self) -> Option<&PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>> {
-        self.precomputation.as_ref().map(|v| v.as_ref())
+        self.precomputation.as_ref().map(|v| &v.as_ref().table)
     }
 }
 
@@ -1033,6 +1033,43 @@ impl G1GetFp<ArkFp> for ArkG1 {
 pub struct ArkG1Affine {
     pub aff: G1Affine,
 }
+
+impl Serialize for ArkG1Affine {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer {
+            serializer.serialize_u128(self.aff.serialized_size(ark_serialize::Compress::Yes) as u128)
+    }
+}
+
+// Todo(Cecilia): need test
+impl<'de> Deserialize<'de> for ArkG1Affine {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkG1AffineVisitor;
+
+        impl<'de> Visitor<'de> for ArkG1AffineVisitor {
+            type Value = ArkG1Affine;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a string representing G1Affine")
+            }
+
+            fn visit_u128<E>(self, value: u128) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                let aff: G1Affine = G1Affine::deserialize_compressed(value.to_be_bytes().as_slice()).map_err(de::Error::custom)?;
+                Ok(ArkG1Affine { aff })
+            }
+        }
+
+        deserializer.deserialize_str(ArkG1AffineVisitor)
+    }
+}
+
 
 impl G1AffineTrait<ArkG1, ArkFp> for ArkG1Affine {
     fn into_affine(g1: &ArkG1) -> Self {
