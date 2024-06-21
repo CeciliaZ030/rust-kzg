@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use alloc::string::String;
-
+use serde::{Deserialize, Serialize};
 use crate::{Fr, G1Affine, G1Fp, G1GetFp, G1Mul, G1};
 
 #[cfg(all(feature = "bgmw", any(not(feature = "arkmsm"), feature = "parallel")))]
