@@ -522,7 +522,7 @@ impl G1Mul<ZFr> for ZG1 {
 }
 
 #[repr(C)]
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct ZG1Affine(pub G1Affine);
 impl G1AffineTrait<ZG1, ZFp> for ZG1Affine {
     fn into_affine(g1: &ZG1) -> Self {
