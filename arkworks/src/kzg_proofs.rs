@@ -60,11 +60,11 @@ pub struct KZGSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct ArkPrecomputationTable {
+pub struct ArkPrecomputationTable {
     pub table: PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>,
 }
 
-mod serde_arc_bgmw_table {
+pub mod serde_arc_bgmw_table {
     use super::*;
     use alloc::sync::Arc;
     use serde::{Deserialize, Deserializer, Serializer};
