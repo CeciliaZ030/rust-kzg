@@ -162,7 +162,7 @@ macro_rules! handle_ckzg_badargs {
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn blob_to_kzg_commitment(
+pub unsafe extern "C" fn rusk_kzg_blob_to_kzg_commitment(
     out: *mut KZGCommitment,
     blob: *const Blob,
     s: &CKZGSettings,
@@ -182,7 +182,7 @@ pub unsafe extern "C" fn blob_to_kzg_commitment(
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn load_trusted_setup(
+pub unsafe extern "C" fn rusk_kzg_load_trusted_setup(
     out: *mut CKZGSettings,
     g1_bytes: *const u8,
     n1: usize,
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn load_trusted_setup(
 /// # Safety
 #[cfg(feature = "std")]
 #[no_mangle]
-pub unsafe extern "C" fn load_trusted_setup_file(
+pub unsafe extern "C" fn rusk_kzg_load_trusted_setup_file(
     out: *mut CKZGSettings,
     in_: *mut FILE,
 ) -> C_KZG_RET {
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn load_trusted_setup_file(
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn free_trusted_setup(s: *mut CKZGSettings) {
+pub unsafe extern "C" fn rusk_kzg_free_trusted_setup(s: *mut CKZGSettings) {
     if s.is_null() {
         return;
     }
@@ -258,7 +258,7 @@ pub unsafe extern "C" fn free_trusted_setup(s: *mut CKZGSettings) {
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn verify_kzg_proof(
+pub unsafe extern "C" fn rusk_kzg_verify_kzg_proof(
     ok: *mut bool,
     commitment_bytes: *const Bytes48,
     z_bytes: *const Bytes32,
@@ -287,7 +287,7 @@ pub unsafe extern "C" fn verify_kzg_proof(
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn verify_blob_kzg_proof(
+pub unsafe extern "C" fn rusk_kzg_verify_blob_kzg_proof(
     ok: *mut bool,
     blob: *const Blob,
     commitment_bytes: *const Bytes48,
@@ -314,7 +314,7 @@ pub unsafe extern "C" fn verify_blob_kzg_proof(
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn verify_blob_kzg_proof_batch(
+pub unsafe extern "C" fn rusk_kzg_verify_blob_kzg_proof_batch(
     ok: *mut bool,
     blobs: *const Blob,
     commitments_bytes: *const Bytes48,
@@ -363,7 +363,7 @@ pub unsafe extern "C" fn verify_blob_kzg_proof_batch(
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn compute_blob_kzg_proof(
+pub unsafe extern "C" fn rusk_kzg_compute_blob_kzg_proof(
     out: *mut KZGProof,
     blob: *const Blob,
     commitment_bytes: *const Bytes48,
@@ -388,7 +388,7 @@ pub unsafe extern "C" fn compute_blob_kzg_proof(
 
 /// # Safety
 #[no_mangle]
-pub unsafe extern "C" fn compute_kzg_proof(
+pub unsafe extern "C" fn rusk_kzg_compute_kzg_proof(
     proof_out: *mut KZGProof,
     y_out: *mut Bytes32,
     blob: *const Blob,
