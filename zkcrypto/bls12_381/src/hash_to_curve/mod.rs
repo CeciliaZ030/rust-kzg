@@ -13,7 +13,7 @@ pub use self::expand_msg::{
 };
 
 mod map_g1;
-mod map_g2;
+pub mod map_g2;
 mod map_scalar;
 
 use crate::generic_array::{typenum::Unsigned, ArrayLength, GenericArray};
@@ -104,7 +104,7 @@ where
 {
 }
 
-pub(crate) trait Sgn0 {
+pub trait Sgn0 {
     /// Returns either 0 or 1 indicating the "sign" of x, where sgn0(x) == 1
     /// just when x is "negative". (In other words, this function always considers 0 to be positive.)
     /// <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-10#section-4.1>

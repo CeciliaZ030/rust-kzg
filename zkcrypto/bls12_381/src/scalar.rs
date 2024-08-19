@@ -1,12 +1,19 @@
 //! This module provides an implementation of the BLS12-381 scalar field $\mathbb{F}_q$
 //! where `q = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001`
-#![allow(clippy::all)]
 
+use cfg_if::cfg_if;
 use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use ff::{Field, PrimeField};
 use rand_core::RngCore;
 
-use ff::{Field, PrimeField};
+cfg_if! {
+    if #[cfg(target_os = "zkvm")] {
+        use sp1_lib::sys_bigint;
+        use sp1_lib::{io::{hint_slice, read_vec}, unconstrained};
+    }
+}
+
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "bits")]
@@ -82,7 +89,7 @@ pub const MODULUS: Scalar = Scalar([
 ]);
 
 /// The modulus as u32 limbs.
-#[cfg(all(feature = "bits", not(target_pointer_width = "64")))]
+#[cfg(target_os = "zkvm")]
 const MODULUS_LIMBS_32: [u32; 8] = [
     0x0000_0001,
     0xffff_ffff,
@@ -92,6 +99,18 @@ const MODULUS_LIMBS_32: [u32; 8] = [
     0x3339_d808,
     0x299d_7d48,
     0x73ed_a753,
+];
+
+#[cfg(target_os = "zkvm")]
+const R_INV: [u32; 8] = [
+    0xfe75_c040,
+    0x13f7_5b69,
+    0x09dc_705f,
+    0xab6f_ca8f,
+    0x4f77_266a,
+    0x7204_078a,
+    0x3000_9d57,
+    0x1bbe_8693,
 ];
 
 // The number of bits needed to represent the modulus.
@@ -333,13 +352,12 @@ impl Scalar {
 
     /// Converts from an integer represented in little endian
     /// into its (congruent) `Scalar` representation.
-    pub const fn from_raw(val: [u64; 4]) -> Self {
+    pub fn from_raw(val: [u64; 4]) -> Self {
         (&Scalar(val)).mul(&R2)
     }
 
-    /// Squares this element.
     #[inline]
-    pub const fn square(&self) -> Scalar {
+    fn _square(&self) -> Scalar {
         let (r1, carry) = mac(0, self.0[0], self.0[1], 0);
         let (r2, carry) = mac(0, self.0[0], self.0[2], carry);
         let (r3, r4) = mac(0, self.0[0], self.0[3], carry);
@@ -369,6 +387,20 @@ impl Scalar {
         Scalar::montgomery_reduce(r0, r1, r2, r3, r4, r5, r6, r7)
     }
 
+    /// Squares this element.
+    #[inline]
+    pub fn square(&self) -> Scalar {
+        // cfg_if! {
+        //     if #[cfg(target_os = "zkvm")] {
+        //         let mut res = *self;
+        //         res.mul_inp(self);
+        //         res
+        //     } else {
+        self._square()
+        //     }
+        // }
+    }
+
     /// Exponentiates `self` by `by`, where `by` is a
     /// little-endian order integer exponent.
     pub fn pow(&self, by: &[u64; 4]) -> Self {
@@ -377,7 +409,7 @@ impl Scalar {
             for i in (0..64).rev() {
                 res = res.square();
                 let mut tmp = res;
-                tmp *= self;
+                tmp.mul_inp(self);
                 res.conditional_assign(&tmp, (((*e >> i) & 0x1) as u8).into());
             }
         }
@@ -397,7 +429,7 @@ impl Scalar {
                 res = res.square();
 
                 if ((*e >> i) & 1) == 1 {
-                    res.mul_assign(self);
+                    res.mul_inp(self);
                 }
             }
         }
@@ -406,101 +438,128 @@ impl Scalar {
 
     /// Computes the multiplicative inverse of this element,
     /// failing if the element is zero.
-    pub fn invert(&self) -> CtOption<Self> {
+    fn _invert(&self) -> CtOption<Self> {
         #[inline(always)]
         fn square_assign_multi(n: &mut Scalar, num_times: usize) {
             for _ in 0..num_times {
-                *n = n.square();
+                *n = n._square();
             }
         }
         // found using https://github.com/kwantam/addchain
-        let mut t0 = self.square();
-        let mut t1 = t0 * self;
-        let mut t16 = t0.square();
-        let mut t6 = t16.square();
-        let mut t5 = t6 * t0;
-        t0 = t6 * t16;
-        let mut t12 = t5 * t16;
-        let mut t2 = t6.square();
-        let mut t7 = t5 * t6;
-        let mut t15 = t0 * t5;
-        let mut t17 = t12.square();
-        t1 *= t17;
-        let mut t3 = t7 * t2;
-        let t8 = t1 * t17;
-        let t4 = t8 * t2;
-        let t9 = t8 * t7;
-        t7 = t4 * t5;
-        let t11 = t4 * t17;
-        t5 = t9 * t17;
-        let t14 = t7 * t15;
-        let t13 = t11 * t12;
-        t12 = t11 * t17;
-        t15 *= &t12;
-        t16 *= &t15;
-        t3 *= &t16;
-        t17 *= &t3;
-        t0 *= &t17;
-        t6 *= &t0;
-        t2 *= &t6;
+        let mut t0 = self._square();
+        let mut t1 = t0._mul(self);
+        let mut t16 = t0._square();
+        let mut t6 = t16._square();
+        let mut t5 = t6._mul(&t0);
+        t0 = t6._mul(&t16);
+        let mut t12 = t5._mul(&t16);
+        let mut t2 = t6._square();
+        let mut t7 = t5._mul(&t6);
+        let mut t15 = t0._mul(&t5);
+        let mut t17 = t12._square();
+        t1 = t1._mul(&t17);
+        let mut t3 = t7._mul(&t2);
+        let t8 = t1._mul(&t17);
+        let t4 = t8._mul(&t2);
+        let t9 = t8._mul(&t7);
+        t7 = t4._mul(&t5);
+        let t11 = t4._mul(&t17);
+        t5 = t9._mul(&t17);
+        let t14 = t7._mul(&t15);
+        let t13 = t11._mul(&t12);
+        t12 = t11._mul(&t17);
+        t15 = t15._mul(&t12);
+        t16 = t16._mul(&t15);
+        t3 = t3._mul(&t16);
+        t17 = t17._mul(&t3);
+        t0 = t0._mul(&t17);
+        t6 = t6._mul(&t0);
+        t2 = t2._mul(&t6);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t17;
+        t0 = t0._mul(&t17);
         square_assign_multi(&mut t0, 9);
-        t0 *= &t16;
+        t0 = t0._mul(&t16);
         square_assign_multi(&mut t0, 9);
-        t0 *= &t15;
+        t0 = t0._mul(&t15);
         square_assign_multi(&mut t0, 9);
-        t0 *= &t15;
+        t0 = t0._mul(&t15);
         square_assign_multi(&mut t0, 7);
-        t0 *= &t14;
+        t0 = t0._mul(&t14);
         square_assign_multi(&mut t0, 7);
-        t0 *= &t13;
+        t0 = t0._mul(&t13);
         square_assign_multi(&mut t0, 10);
-        t0 *= &t12;
+        t0 = t0._mul(&t12);
         square_assign_multi(&mut t0, 9);
-        t0 *= &t11;
+        t0 = t0._mul(&t11);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t8;
+        t0 = t0._mul(&t8);
         square_assign_multi(&mut t0, 8);
-        t0 *= self;
+        t0 = t0._mul(self);
         square_assign_multi(&mut t0, 14);
-        t0 *= &t9;
+        t0 = t0._mul(&t9);
         square_assign_multi(&mut t0, 10);
-        t0 *= &t8;
+        t0 = t0._mul(&t8);
         square_assign_multi(&mut t0, 15);
-        t0 *= &t7;
+        t0 = t0._mul(&t7);
         square_assign_multi(&mut t0, 10);
-        t0 *= &t6;
+        t0 = t0._mul(&t6);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t5;
+        t0 = t0._mul(&t5);
         square_assign_multi(&mut t0, 16);
-        t0 *= &t3;
+        t0 = t0._mul(&t3);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t2;
+        t0 = t0._mul(&t2);
         square_assign_multi(&mut t0, 7);
-        t0 *= &t4;
+        t0 = t0._mul(&t4);
         square_assign_multi(&mut t0, 9);
-        t0 *= &t2;
+        t0 = t0._mul(&t2);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t3;
+        t0 = t0._mul(&t3);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t2;
+        t0 = t0._mul(&t2);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t2;
+        t0 = t0._mul(&t2);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t2;
+        t0 = t0._mul(&t2);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t3;
+        t0 = t0._mul(&t3);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t2;
+        t0 = t0._mul(&t2);
         square_assign_multi(&mut t0, 8);
-        t0 *= &t2;
+        t0 = t0._mul(&t2);
         square_assign_multi(&mut t0, 5);
-        t0 *= &t1;
+        t0 = t0._mul(&t1);
         square_assign_multi(&mut t0, 5);
-        t0 *= &t1;
+        t0 = t0._mul(&t1);
 
         CtOption::new(t0, !self.ct_eq(&Self::zero()))
+    }
+
+    pub fn invert(&self) -> CtOption<Self> {
+        #[cfg(target_os = "zkvm")]
+        {
+            unconstrained! {
+                let mut buf = [0u8; 33];
+                self._invert().map(|sqrt| {
+                    buf[0..32].copy_from_slice(&sqrt.to_bytes());
+                    buf[32] = 1;
+                });
+                hint_slice(&buf);
+            }
+            let byte_vec = read_vec();
+            let bytes: [u8; 33] = byte_vec.try_into().unwrap();
+            match bytes[32] {
+                0 => CtOption::new(Scalar::zero(), Choice::from(0u8)),
+                _ => {
+                    let inv = Scalar::from_bytes(&bytes[0..32].try_into().unwrap()).unwrap();
+                    CtOption::new(inv, (self * inv).ct_eq(&Scalar::one()))
+                }
+            }
+        }
+        #[cfg(not(target_os = "zkvm"))]
+        {
+            self._invert()
+        }
     }
 
     #[inline(always)]
@@ -550,9 +609,42 @@ impl Scalar {
         (&Scalar([r4, r5, r6, r7])).sub(&MODULUS)
     }
 
-    /// Multiplies `rhs` by `self`, returning the result.
     #[inline]
-    pub const fn mul(&self, rhs: &Self) -> Self {
+    #[cfg(target_os = "zkvm")]
+    pub(crate) fn mul_r_inv_internal(&mut self) {
+        unsafe {
+            sys_bigint(
+                self.0.as_mut_ptr() as *mut [u32; 8],
+                0,
+                self.0.as_ptr() as *const [u32; 8],
+                &R_INV,
+                &MODULUS_LIMBS_32,
+            );
+        }
+    }
+
+    #[inline]
+    pub fn mul_inp(&mut self, rhs: &Scalar) {
+        cfg_if! {
+            if #[cfg(target_os = "zkvm")] {
+                unsafe {
+                    sys_bigint(
+                        self.0.as_mut_ptr() as *mut[u32; 8],
+                        0,
+                        self.0.as_ptr() as *const [u32; 8],
+                        rhs.0.as_ptr() as *const [u32; 8],
+                        &MODULUS_LIMBS_32,
+                    );
+                }
+                self.mul_r_inv_internal();
+            }
+            else {
+                *self = self.mul(rhs);
+            }
+        }
+    }
+
+    fn _mul(&self, rhs: &Self) -> Self {
         // Schoolbook multiplication
 
         let (r0, carry) = mac(0, self.0[0], rhs.0[0], 0);
@@ -576,6 +668,20 @@ impl Scalar {
         let (r6, r7) = mac(r6, self.0[3], rhs.0[3], carry);
 
         Scalar::montgomery_reduce(r0, r1, r2, r3, r4, r5, r6, r7)
+    }
+
+    /// Multiplies `rhs` by `self`, returning the result.
+    #[inline]
+    pub fn mul(&self, rhs: &Self) -> Self {
+        cfg_if! {
+            if #[cfg(target_os = "zkvm")] {
+                let mut res = *self;
+                res.mul_inp(rhs);
+                res
+            } else {
+                self._mul(rhs)
+            }
+        }
     }
 
     /// Subtracts `rhs` from `self`, returning the result.
@@ -626,6 +732,47 @@ impl Scalar {
 
         Scalar([d0 & mask, d1 & mask, d2 & mask, d3 & mask])
     }
+
+    /// Divide `self` by n.
+    #[inline]
+    pub fn divn(&self, mut n: u32) -> Scalar {
+        if n >= 256 {
+            return Scalar::from(0);
+        }
+
+        // cfg_if! {
+        //     if #[cfg(target_os = "zkvm")]
+        //     {
+        //         let mut lhs = Scalar::from(n as u64).invert().unwrap();
+        //         lhs.mul_inp(&self);
+        //         lhs
+        //     }
+        //     else
+        //     {
+        let mut out = self.clone();
+
+        while n >= 64 {
+            let mut t = 0;
+            for i in out.0.iter_mut().rev() {
+                core::mem::swap(&mut t, i);
+            }
+            n -= 64;
+        }
+
+        if n > 0 {
+            let mut t = 0;
+            for i in out.0.iter_mut().rev() {
+                let t2 = *i << (64 - n);
+                *i >>= n;
+                *i |= t;
+                t = t2;
+            }
+        }
+
+        out
+    }
+    //     }
+    // }
 }
 
 impl From<Scalar> for [u8; 32] {

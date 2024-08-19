@@ -63,6 +63,9 @@ version = "1.4"
 default-features = false
 optional = true
 
+[dependencies.cfg-if]
+version = "1.0.0"
+
 [features]
 default = ["groups", "pairings", "alloc", "bits"]
 bits = ["ff/bits"]

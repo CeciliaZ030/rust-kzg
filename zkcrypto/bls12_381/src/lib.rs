@@ -13,7 +13,7 @@
 // Catch documentation errors caused by code changes.
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_debug_implementations)]
-#![deny(unsafe_code)]
+// #![deny(unsafe_code)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::many_single_char_names)]
 // This lint is described at
@@ -48,7 +48,7 @@ pub mod scalar;
 pub use scalar::Scalar;
 
 #[cfg(feature = "groups")]
-mod fp;
+pub mod fp;
 #[cfg(feature = "groups")]
 pub mod fp2;
 #[cfg(feature = "groups")]
@@ -62,9 +62,9 @@ pub use g1::{G1Affine, G1Projective};
 pub use g2::{G2Affine, G2Projective};
 
 #[cfg(feature = "groups")]
-mod fp12;
+pub mod fp12;
 #[cfg(feature = "groups")]
-mod fp6;
+pub mod fp6;
 
 // The BLS parameter x for BLS12-381 is -0xd201000000010000
 #[cfg(feature = "groups")]
