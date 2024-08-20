@@ -51,3 +51,6 @@ pub mod zero_poly;
 //         self.l[0] == 0 && self.l[1] == 0 && self.l[2] == 0 && self.l[3] == 0
 //     }
 // }
+pub mod bls12_381{
+    pub use bls12_381::*;
+}
