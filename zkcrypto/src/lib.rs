@@ -53,4 +53,9 @@ pub mod zero_poly;
 // }
 pub mod bls12_381{
     pub use bls12_381::*;
+    pub fn pairings_verify(a1: G1Affine, a2: G2Affine, b1: G1Affine, b2: G2Affine) -> bool {
+        multi_miller_loop(&[(&-a1, &G2Prepared::from(a2)), (&b1, &G2Prepared::from(b2))])
+            .final_exponentiation()
+            == Gt::identity()
+    }
 }
