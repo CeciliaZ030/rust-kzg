@@ -22,6 +22,7 @@ use kzg::{
     FFTFr, FFTSettings, Fr as KzgFr, G1Fp, G1GetFp, G1LinComb, G1Mul, G1ProjAddAffine, G2Mul,
     KZGSettings, PairingVerify, Poly, Scalar256, G1, G2,
 };
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 use ff::derive::sbb;
@@ -39,7 +40,7 @@ fn bigint_check_mod_256(a: &[u64; 4]) -> bool {
     overflow
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct ZFr {
     pub fr: Scalar,
 }
@@ -352,7 +353,7 @@ impl G1Fp for ZFp {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct ZG1 {
     pub proj: G1Projective,
 }
@@ -521,7 +522,7 @@ impl G1Mul<ZFr> for ZG1 {
 }
 
 #[repr(C)]
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct ZG1Affine(pub G1Affine);
 impl G1AffineTrait<ZG1, ZFp> for ZG1Affine {
     fn into_affine(g1: &ZG1) -> Self {
@@ -662,7 +663,7 @@ impl PairingVerify<ZG1, ZG2> for ZG1 {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct ZG2 {
     pub proj: G2Projective,
 }

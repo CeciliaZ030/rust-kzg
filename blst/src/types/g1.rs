@@ -21,6 +21,8 @@ use kzg::G1GetFp;
 use kzg::G1LinComb;
 use kzg::G1ProjAddAffine;
 use kzg::{G1Mul, G1};
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::consts::{G1_GENERATOR, G1_IDENTITY, G1_NEGATIVE_GENERATOR};
 use crate::kzg_proofs::g1_linear_combination;
@@ -29,7 +31,7 @@ use crate::types::fr::FsFr;
 use super::fp::FsFp;
 
 #[repr(C)]
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FsG1(pub blst_p1);
 
 impl FsG1 {
@@ -279,7 +281,7 @@ impl G1LinComb<FsFr, FsFp, FsG1Affine> for FsG1 {
 }
 
 #[repr(C)]
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FsG1Affine(pub blst_p1_affine);
 
 impl G1Affine<FsG1, FsFp> for FsG1Affine {

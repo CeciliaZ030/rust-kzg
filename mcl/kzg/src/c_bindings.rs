@@ -3,7 +3,7 @@ use crate::fk20_fft::FFTSettings as mFFTSettings;
 use crate::kzg_settings::KZGSettings as mKZGSettings;
 use kzg::cfg_into_iter;
 use kzg::eip_4844::{
-    blst_p1, load_trusted_setup_string, Blob, Bytes32, Bytes48, CFFTSettings, CKZGSettings,
+    blst_p1, load_trusted_setup_string, Blob, Bytes32, Bytes48, FFTSettings, CKZGSettings,
     KZGCommitment, KZGProof, BYTES_PER_FIELD_ELEMENT, BYTES_PER_G1, BYTES_PER_G2, C_KZG_RET,
     C_KZG_RET_BADARGS, C_KZG_RET_OK,
 };

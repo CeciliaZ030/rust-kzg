@@ -13,6 +13,10 @@ pub use blst::{blst_fr, blst_p1, blst_p2};
 use core::ffi::c_uint;
 use core::hash::Hash;
 use core::hash::Hasher;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use sha2::{Digest, Sha256};
 use siphasher::sip::SipHasher;
 
@@ -86,6 +90,58 @@ pub struct Blob {
     pub bytes: [u8; BYTES_PER_BLOB],
 }
 
+impl Serialize for Blob {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(&self.bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for Blob {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct BlobVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for BlobVisitor {
+            type Value = Blob;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("an array of BYTES_PER_BLOB(131072) bytes")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.len() == BYTES_PER_BLOB {
+                    let mut bytes = [0u8; BYTES_PER_BLOB];
+                    bytes.copy_from_slice(v);
+                    Ok(Blob { bytes })
+                } else {
+                    Err(E::invalid_length(v.len(), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_bytes(BlobVisitor)
+    }
+}
+
+impl Blob {
+    pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
+        if data.len() != BYTES_PER_BLOB {
+            return Err(String::from("Invalid blob length"));
+        }
+        let mut bytes = [0u8; BYTES_PER_BLOB];
+        bytes.copy_from_slice(data);
+        Ok(Blob { bytes })
+    }
+}
+
 #[repr(C)]
 pub struct KZGCommitment {
     pub bytes: [u8; BYTES_PER_COMMITMENT],
@@ -97,12 +153,28 @@ pub struct KZGProof {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone)]
 pub struct CKZGSettings {
     pub max_width: u64,
     pub roots_of_unity: *mut blst_fr,
     pub g1_values: *mut blst_p1,
     pub g2_values: *mut blst_p2,
 }
+
+#[cfg(feature = "std")]
+impl Default for CKZGSettings {
+    fn default() -> Self {
+        CKZGSettings {
+            max_width: Default::default(),
+            roots_of_unity: std::ptr::null_mut(),
+            g1_values: std::ptr::null_mut(),
+            g2_values: std::ptr::null_mut(),
+        }
+    }
+}
+
+unsafe impl Send for CKZGSettings {}
+unsafe impl Sync for CKZGSettings {}
 
 pub struct PrecomputationTableManager<TFr, TG1, TG1Fp, TG1Affine>
 where
@@ -766,7 +838,7 @@ pub fn hash_to_bls_field<TFr: Fr>(x: &[u8; BYTES_PER_FIELD_ELEMENT]) -> TFr {
     TFr::from_bytes_unchecked(x).unwrap()
 }
 
-fn compute_challenge<TFr: Fr, TG1: G1>(blob: &[TFr], commitment: &TG1) -> TFr {
+pub fn compute_challenge<TFr: Fr, TG1: G1>(blob: &[TFr], commitment: &TG1) -> TFr {
     let mut bytes: Vec<u8> = vec![0; CHALLENGE_INPUT_SIZE];
 
     // Copy domain separator

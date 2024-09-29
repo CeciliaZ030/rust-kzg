@@ -14,6 +14,7 @@ use kzg::eip_4844::{
 };
 use kzg::{cfg_into_iter, Fr, G1};
 use std::ptr::null_mut;
+use std::sync::Arc;
 
 #[cfg(feature = "std")]
 use libc::FILE;
@@ -140,6 +141,21 @@ unsafe fn deserialize_blob(blob: *const Blob) -> Result<Vec<ArkFr>, C_KZG_RET> {
         .collect::<Result<Vec<ArkFr>, C_KZG_RET>>()
 }
 
+pub fn deserialize_blob_rust(blob: &Blob) -> Result<Vec<ArkFr>, String> {
+    blob.bytes
+        .chunks(BYTES_PER_FIELD_ELEMENT)
+        .map(|chunk| {
+            let mut bytes = [0u8; BYTES_PER_FIELD_ELEMENT];
+            bytes.copy_from_slice(chunk);
+            if let Ok(result) = ArkFr::from_bytes(&bytes) {
+                Ok(result)
+            } else {
+                Err("Fail deserializing blob".to_owned())
+            }
+        })
+        .collect::<Result<Vec<ArkFr>, String>>()
+}
+
 macro_rules! handle_ckzg_badargs {
     ($x: expr) => {
         match $x {
@@ -184,8 +200,12 @@ pub unsafe extern "C" fn load_trusted_setup(
     let mut settings = handle_ckzg_badargs!(load_trusted_setup_rust(g1_bytes, g2_bytes));
 
     let c_settings = kzg_settings_to_c(&settings);
-
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
+    let precomputation = settings
+        .precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
 
     *out = c_settings;
 
@@ -216,8 +236,12 @@ pub unsafe extern "C" fn load_trusted_setup_file(
     ));
 
     let c_settings = kzg_settings_to_c(&settings);
-
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
+    let precomputation = settings
+        .precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
 
     *out = c_settings;
 

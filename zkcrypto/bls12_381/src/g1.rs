@@ -9,6 +9,7 @@ use group::{
     Curve, Group, GroupEncoding, UncompressedEncoding,
 };
 use rand_core::RngCore;
+use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "alloc")]
@@ -24,11 +25,32 @@ use crate::Scalar;
 /// Values of `G1Affine` are guaranteed to be in the $q$-order subgroup unless an
 /// "unchecked" API was misused.
 #[cfg_attr(docsrs, doc(cfg(feature = "groups")))]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct G1Affine {
     pub x: Fp,
     pub y: Fp,
+    #[serde(with = "serde_choice")]
     pub infinity: Choice,
+}
+
+mod serde_choice {
+    use serde::Deserialize;
+    use subtle::Choice;
+
+    pub fn serialize<S>(choice: &Choice, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u8(choice.unwrap_u8())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Choice, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u8::deserialize(deserializer)?;
+        Ok(Choice::from(value))
+    }
 }
 
 impl Default for G1Affine {
@@ -438,7 +460,7 @@ fn endomorphism(p: &G1Affine) -> G1Affine {
 
 /// This is an element of $\mathbb{G}_1$ represented in the projective coordinate space.
 #[cfg_attr(docsrs, doc(cfg(feature = "groups")))]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct G1Projective {
     pub x: Fp,
     pub y: Fp,
@@ -1787,10 +1809,10 @@ fn test_commutative_scalar_subgroup_multiplication() {
     assert_eq!(&g1_p * &a, &a * &g1_p);
 
     // Mixed
-    assert_eq!(&g1_a * a.clone(), a.clone() * &g1_a);
-    assert_eq!(&g1_p * a.clone(), a.clone() * &g1_p);
-    assert_eq!(g1_a.clone() * &a, &a * g1_a.clone());
-    assert_eq!(g1_p.clone() * &a, &a * g1_p.clone());
+    assert_eq!(&g1_a * a, a * &g1_a);
+    assert_eq!(&g1_p * a, a * &g1_p);
+    assert_eq!(g1_a * &a, &a * g1_a);
+    assert_eq!(g1_p * &a, &a * g1_p);
 
     // By value.
     assert_eq!(g1_p * a, a * g1_p);

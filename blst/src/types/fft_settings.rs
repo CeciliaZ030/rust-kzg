@@ -6,11 +6,12 @@ use alloc::vec::Vec;
 
 use kzg::common_utils::reverse_bit_order;
 use kzg::{FFTSettings, Fr};
+use serde::{Deserialize, Serialize};
 
 use crate::consts::SCALE2_ROOT_OF_UNITY;
 use crate::types::fr::FsFr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FsFFTSettings {
     pub max_width: usize,
     pub root_of_unity: FsFr,

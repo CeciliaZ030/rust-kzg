@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 use kzg::msm::precompute::{precompute, PrecomputationTable};
 use kzg::{FFTFr, FFTSettings, Fr, G1Mul, G2Mul, KZGSettings, Poly, G1, G2};
+use serde::{Deserialize, Serialize};
 
 use crate::consts::{G1_GENERATOR, G2_GENERATOR};
 use crate::kzg_proofs::{g1_linear_combination, pairings_verify};
@@ -18,12 +19,60 @@ use crate::types::poly::FsPoly;
 use super::fp::FsFp;
 use super::g1::FsG1Affine;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FsKZGSettings {
     pub fs: FsFFTSettings,
     pub secret_g1: Vec<FsG1>,
     pub secret_g2: Vec<FsG2>,
-    pub precomputation: Option<Arc<PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>>>,
+    #[serde(with = "serde_arc_bgmw_table")]
+    pub precomputation: Option<Arc<FsPrecomputationTable>>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+
+pub struct FsPrecomputationTable {
+    pub table: PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>,
+}
+
+mod serde_arc_bgmw_table {
+    use super::*;
+    use alloc::sync::Arc;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(
+        value: &Option<Arc<FsPrecomputationTable>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(arc) => arc.as_ref().serialize(serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Option<Arc<FsPrecomputationTable>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Option::<FsPrecomputationTable>::deserialize(deserializer).map(|opt| opt.map(Arc::new))
+    }
+}
+
+#[test]
+#[cfg(feature = "bgmw")]
+fn test_serde() {
+    
+    let mut settings = FsKZGSettings::default();
+    let table = FsPrecomputationTable::default();
+    settings.precomputation = Some(Arc::new(table));
+    let serialized = serde_json::to_string(&settings).unwrap();
+    let deserialized: FsKZGSettings = serde_json::from_str(&serialized).unwrap();
+    println!("{:?}\n", deserialized);
+    println!("{:?}", serialized);
 }
 
 impl KZGSettings<FsFr, FsG1, FsG2, FsFFTSettings, FsPoly, FsFp, FsG1Affine> for FsKZGSettings {
@@ -33,11 +82,15 @@ impl KZGSettings<FsFr, FsG1, FsG2, FsFFTSettings, FsPoly, FsFp, FsG1Affine> for 
         _length: usize,
         fft_settings: &FsFFTSettings,
     ) -> Result<Self, String> {
+        let precomputation = precompute(secret_g1)
+            .ok()
+            .flatten()
+            .map(|t| Arc::new(FsPrecomputationTable { table: t }));
         Ok(Self {
             secret_g1: secret_g1.to_vec(),
             secret_g2: secret_g2.to_vec(),
             fs: fft_settings.clone(),
-            precomputation: precompute(secret_g1).ok().flatten().map(Arc::new),
+            precomputation,
         })
     }
 
@@ -203,6 +256,6 @@ impl KZGSettings<FsFr, FsG1, FsG2, FsFFTSettings, FsPoly, FsFp, FsG1Affine> for 
     }
 
     fn get_precomputation(&self) -> Option<&PrecomputationTable<FsFr, FsG1, FsFp, FsG1Affine>> {
-        self.precomputation.as_ref().map(|v| v.as_ref())
+        self.precomputation.as_ref().map(|v| &v.as_ref().table)
     }
 }

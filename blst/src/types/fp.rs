@@ -1,8 +1,9 @@
 use blst::blst_fp;
 use kzg::G1Fp;
+use serde::{Deserialize, Serialize};
 
 #[repr(C)]
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FsFp(pub blst_fp);
 impl G1Fp for FsFp {
     const ONE: Self = Self(blst_fp {

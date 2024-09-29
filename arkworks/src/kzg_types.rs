@@ -32,6 +32,9 @@ use kzg::{
     FFTFr, FFTSettings, FFTSettingsPoly, Fr as KzgFr, G1Affine as G1AffineTrait, G1Fp, G1GetFp,
     G1LinComb, G1Mul, G1ProjAddAffine, G2Mul, KZGSettings, PairingVerify, Poly, Scalar256, G1, G2,
 };
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use std::ops::{AddAssign, Mul, Neg, Sub};
 
 extern crate alloc;
@@ -51,6 +54,45 @@ const BLS12_381_MOD_256: [u64; 4] = [
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct ArkFr {
     pub fr: Fr,
+}
+
+// Custom implementation of Serialize using the Debug trait
+impl Serialize for ArkFr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = self.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+}
+
+// TODO(Cecilia): fix this
+// Custom implementation of Deserialize using the Debug trait
+impl<'de> Deserialize<'de> for ArkFr {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkFrVisitor;
+
+        impl<'de> Visitor<'de> for ArkFrVisitor {
+            type Value = ArkFr;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a bytes representing ArkFr")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                ArkFr::from_bytes(v).map_err(|e| de::Error::custom(e))
+            }
+        }
+
+        deserializer.deserialize_seq(ArkFrVisitor)
+    }
 }
 
 impl ArkFr {
@@ -251,6 +293,42 @@ impl KzgFr for ArkFr {
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct ArkG1(pub Projective<g1::Config>);
 
+impl Serialize for ArkG1 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = self.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArkG1 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkG1Visitor;
+
+        impl<'de> Visitor<'de> for ArkG1Visitor {
+            type Value = ArkG1;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a string representing ArkG1")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                ArkG1::from_bytes(v).map_err(|e| de::Error::custom(e))
+            }
+        }
+
+        deserializer.deserialize_bytes(ArkG1Visitor)
+    }
+}
+
 impl ArkG1 {
     pub const fn from_blst_p1(p1: blst_p1) -> Self {
         Self(blst_p1_into_pc_g1projective(&p1))
@@ -413,6 +491,42 @@ impl PairingVerify<ArkG1, ArkG2> for ArkG1 {
 #[repr(C)]
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct ArkG2(pub Projective<g2::Config>);
+
+impl Serialize for ArkG2 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = self.to_bytes();
+        serializer.serialize_bytes(&bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArkG2 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkG2Visitor;
+
+        impl<'de> Visitor<'de> for ArkG2Visitor {
+            type Value = ArkG2;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a string representing ArkG2")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                ArkG2::from_bytes(v).map_err(|e| de::Error::custom(e))
+            }
+        }
+
+        deserializer.deserialize_bytes(ArkG2Visitor)
+    }
+}
 
 impl ArkG2 {
     pub const fn from_blst_p2(p2: blst::blst_p2) -> Self {
@@ -633,7 +747,7 @@ impl KZGSettings<ArkFr, ArkG1, ArkG2, LFFTSettings, PolyData, ArkFp, ArkG1Affine
             secret_g1: secret_g1.to_vec(),
             secret_g2: secret_g2.to_vec(),
             fs: fft_settings.clone(),
-            precomputation: precompute(secret_g1).ok().flatten().map(Arc::new),
+            precomputation: Option::None,
         })
     }
 
@@ -796,7 +910,7 @@ impl KZGSettings<ArkFr, ArkG1, ArkG2, LFFTSettings, PolyData, ArkFp, ArkG1Affine
     }
 
     fn get_precomputation(&self) -> Option<&PrecomputationTable<ArkFr, ArkG1, ArkFp, ArkG1Affine>> {
-        self.precomputation.as_ref().map(|v| v.as_ref())
+        self.precomputation.as_ref().map(|v| &v.as_ref().table)
     }
 }
 
@@ -918,6 +1032,45 @@ impl G1GetFp<ArkFp> for ArkG1 {
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct ArkG1Affine {
     pub aff: G1Affine,
+}
+
+impl Serialize for ArkG1Affine {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u128(self.aff.serialized_size(ark_serialize::Compress::Yes) as u128)
+    }
+}
+
+// Todo(Cecilia): need test
+impl<'de> Deserialize<'de> for ArkG1Affine {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArkG1AffineVisitor;
+
+        impl<'de> Visitor<'de> for ArkG1AffineVisitor {
+            type Value = ArkG1Affine;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a string representing G1Affine")
+            }
+
+            fn visit_u128<E>(self, value: u128) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                let aff: G1Affine =
+                    G1Affine::deserialize_compressed(value.to_be_bytes().as_slice())
+                        .map_err(de::Error::custom)?;
+                Ok(ArkG1Affine { aff })
+            }
+        }
+
+        deserializer.deserialize_str(ArkG1AffineVisitor)
+    }
 }
 
 impl G1AffineTrait<ArkG1, ArkFp> for ArkG1Affine {

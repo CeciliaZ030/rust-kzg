@@ -1,4 +1,8 @@
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
 use core::marker::PhantomData;
+use serde::{Deserialize, Serialize};
 
 use crate::{Fr, G1Affine, G1Fp, G1GetFp, G1Mul, Scalar256, G1};
 
@@ -7,7 +11,7 @@ use super::pippenger_utils::{
     pippenger_window_size, type_is_zero, P1XYZZ,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BgmwTable<TFr, TG1, TG1Fp, TG1Affine>
 where
     TFr: Fr,
@@ -15,14 +19,14 @@ where
     TG1Fp: G1Fp,
     TG1Affine: G1Affine<TG1, TG1Fp>,
 {
-    window: BgmwWindow,
-    points: Vec<TG1Affine>,
-    numpoints: usize,
-    h: usize,
+    pub window: BgmwWindow,
+    pub points: Vec<TG1Affine>,
+    pub numpoints: usize,
+    pub h: usize,
 
-    g1_marker: PhantomData<TG1>,
-    g1_fp_marker: PhantomData<TG1Fp>,
-    fr_marker: PhantomData<TFr>,
+    pub g1_marker: PhantomData<TG1>,
+    pub g1_fp_marker: PhantomData<TG1Fp>,
+    pub fr_marker: PhantomData<TFr>,
 }
 
 const NBITS: usize = 255;
@@ -75,6 +79,19 @@ const fn get_sequential_window_size(window: BgmwWindow) -> usize {
                 panic!("Cannot use parallel BGMW table in sequential version")
             }
         }
+    }
+}
+
+impl<
+        TFr: Fr,
+        TG1Fp: G1Fp,
+        TG1: G1 + G1Mul<TFr> + G1GetFp<TG1Fp>,
+        TG1Affine: G1Affine<TG1, TG1Fp>,
+    > Default for BgmwTable<TFr, TG1, TG1Fp, TG1Affine>
+{
+    fn default() -> Self {
+        let points = vec![TG1::identity(); 16];
+        Self::new(&points).unwrap().unwrap()
     }
 }
 

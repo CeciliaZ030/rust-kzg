@@ -2,6 +2,8 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
+use alloc::string::ToString;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::ptr::null_mut;
 use kzg::common_utils::reverse_bit_order;
@@ -36,6 +38,7 @@ use crate::types::g1::{FsG1, FsG1Affine};
 
 use crate::types::g2::FsG2;
 use crate::types::kzg_settings::FsKZGSettings;
+use crate::types::kzg_settings::FsPrecomputationTable;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -82,13 +85,14 @@ fn fft_settings_to_rust(c_settings: *const CKZGSettings) -> Result<FsFFTSettings
     })
 }
 
-fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, String> {
+pub fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, String> {
     let secret_g1 = unsafe {
         core::slice::from_raw_parts(c_settings.g1_values, TRUSTED_SETUP_NUM_G1_POINTS)
             .iter()
             .map(|r| FsG1(*r))
             .collect::<Vec<FsG1>>()
     };
+    let precomputation = unsafe { PRECOMPUTATION_TABLES.get_precomputation(c_settings) };
     Ok(FsKZGSettings {
         fs: fft_settings_to_rust(c_settings)?,
         secret_g1,
@@ -98,7 +102,11 @@ fn kzg_settings_to_rust(c_settings: &CKZGSettings) -> Result<FsKZGSettings, Stri
                 .map(|r| FsG2(*r))
                 .collect::<Vec<FsG2>>()
         },
-        precomputation: unsafe { PRECOMPUTATION_TABLES.get_precomputation(c_settings) },
+        precomputation: precomputation.map(|t| {
+            Arc::new(FsPrecomputationTable {
+                table: t.as_ref().clone(),
+            })
+        }),
     })
 }
 
@@ -151,6 +159,21 @@ unsafe fn deserialize_blob(blob: *const Blob) -> Result<Vec<FsFr>, C_KZG_RET> {
         .collect::<Result<Vec<FsFr>, C_KZG_RET>>()
 }
 
+pub fn deserialize_blob_rust(blob: &Blob) -> Result<Vec<FsFr>, String> {
+    blob.bytes
+        .chunks(BYTES_PER_FIELD_ELEMENT)
+        .map(|chunk| {
+            let mut bytes = [0u8; BYTES_PER_FIELD_ELEMENT];
+            bytes.copy_from_slice(chunk);
+            if let Ok(result) = FsFr::from_bytes(&bytes) {
+                Ok(result)
+            } else {
+                Err("Deserialize Fr failed".to_string())
+            }
+        })
+        .collect::<Result<Vec<FsFr>, String>>()
+}
+
 macro_rules! handle_ckzg_badargs {
     ($x: expr) => {
         match $x {
@@ -196,7 +219,12 @@ pub unsafe extern "C" fn load_trusted_setup(
 
     let c_settings = kzg_settings_to_c(&settings);
 
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
+    let precomputation = settings
+        .precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
 
     *out = c_settings;
     C_KZG_RET_OK
@@ -227,8 +255,12 @@ pub unsafe extern "C" fn load_trusted_setup_file(
 
     let c_settings = kzg_settings_to_c(&settings);
 
-    PRECOMPUTATION_TABLES.save_precomputation(settings.precomputation.take(), &c_settings);
-
+    let precomputation = settings
+        .precomputation
+        .as_mut()
+        .map(|t| t.as_ref().table.clone())
+        .map(Arc::new);
+    PRECOMPUTATION_TABLES.save_precomputation(precomputation, &c_settings);
     *out = c_settings;
 
     C_KZG_RET_OK
